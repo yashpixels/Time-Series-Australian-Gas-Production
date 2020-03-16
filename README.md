@@ -16,8 +16,8 @@ gaining insights and procure inferences.
 
 I will implement and explain the following steps through our process: 
 
-Components of the time series 
-Periodicity of dataset
+#Components of the time series 
+#Periodicity of dataset
 Stationarity test.
 Null and alternate hypothesis for the stationarity test 
 De-seasonalise the series
