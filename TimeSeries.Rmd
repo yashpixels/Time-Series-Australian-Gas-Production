@@ -1,0 +1,179 @@
+---
+title: "Time Series Analysis Assignment"
+author: "Yashdeep"
+date: "03/03/2020"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+  word_document: default
+---
+
+## Setup root directory for R Markdown
+
+```{r setup}
+knitr::opts_knit$set(root.dir = 'C:/Users/Hp/Desktop/R Programming')
+```
+
+## Environment Setup
+
+```{r}
+setwd("C:/Users/Hp/Desktop/R Programming")
+getwd()
+```
+
+## Invoke Libraries
+
+```{r}
+library(dygraphs)
+library(forecast)
+library(TTR)
+library(tseries)
+library(stats)
+```
+
+## Data Import
+
+```{r}
+GasData <- forecast::gas
+head(GasData)
+is.ts(GasData)
+ts.plot(GasData)
+```
+
+## Segmenting Time Series Data
+
+```{r}
+Actual.GasData <- window(GasData, start = c(1970,1), frequency = 12)
+
+```
+
+## Decomposing Time Series
+
+```{r}
+Actual.GasData.Decomp <- stl(Actual.GasData, s.window=7)
+autoplot(Actual.GasData.Decomp)
+```
+
+## Train and Test Data
+
+```{r}
+Gas.Train.Data <- window(Actual.GasData, start = c(1970,1), end = c(1993,12), frequency = 12)
+Gas.Test.Data <- window(Actual.GasData, start = c(1994,1), frequency = 12)
+Gas.Train.Data
+Gas.Test.Data
+```
+
+## Decompose Forecast
+
+```{r}
+Gas.Dec<-stl(Gas.Train.Data, s.window=7)
+autoplot(Gas.Dec)
+Gas.Dec.Forecast <- forecast(Gas.Dec, method="rwdrift", h=20)
+
+Vec <- cbind(Gas.Test.Data,Gas.Dec.Forecast$mean)
+ts.plot(Vec, col=c("blue", "red"), main="Actual vs Forecast")
+MAPE <- mean(abs(Vec[,1]-Vec[,2])/Vec[,1])
+MAPE
+accuracy(Gas.Dec.Forecast$mean,Gas.Test.Data)
+```
+
+## Simple Moving Average SMA Forecast
+
+```{r}
+SMA.Gas <- SMA(Actual.GasData, n=12)
+autoplot(SMA.Gas)
+ts.plot(SMA.Gas,Actual.GasData, gpars = list(col = c("black", "red")))
+```
+
+## Simple Exponential Smoothing SES Forecasr
+
+```{r}
+SES.Gas <- ses(Gas.Train.Data, h = 20) 
+SES.Gas
+autoplot(SES.Gas)
+accuracy(SES.Gas,Gas.Test.Data)
+```
+
+## Holts Winter Additive Model Forecast
+
+```{r}
+HW.Gas <- ets(Gas.Train.Data, model = "AAA")
+autoplot(forecast(HW.Gas))
+summary(HW.Gas)
+
+HW.Gas.Forecast <- forecast(HW.Gas, h = 20)
+accuracy(HW.Gas.Forecast, Gas.Test.Data)
+```
+
+## Holts Winter Muultiplicative Model Forecast
+
+```{r}
+HW.Gas.M <- ets(Gas.Train.Data, model = "MAM")
+autoplot(forecast(HW.Gas.M))
+summary(HW.Gas.M)
+
+HW.Gas.Forecast.M <- forecast(HW.Gas.M, h = 20)
+accuracy(HW.Gas.Forecast.M, Gas.Test.Data)
+```
+
+## Stationarity Test
+## H0 : Time series is not Stationary
+## Ha : Time series is stationary
+## Accoring to dickey fuller test since the p-value is highly significant we can
+## reject the null hypothesis and confidently say that time series is stationary
+
+```{r}
+adf.test(Actual.GasData)
+```
+
+## Autocorrrelations and Partial Autocorrelations
+
+```{r}
+acf(Actual.GasData, lag.max = 90)
+acf(Gas.Train.Data, lag.max = 90)
+pacf(Gas.Train.Data, lag.max = 90)
+```
+
+## Manual ARIMA Model
+
+```{r}
+Gas.Arima <- arima(Gas.Train.Data, order =  c(3,0,2))
+Gas.Arima
+hist(Gas.Arima$residuals, col = c("beige"))
+tsdisplay(residuals(Gas.Arima), lag.max=15, main='Model Residuals')
+```
+
+## H0: Residuals are independent
+## Ha: Residuals are not independent
+## Residuals are independent
+
+```{r}
+Box.test(Gas.Arima$residuals)
+```
+
+## Forecast using Manual ARIMA Model
+
+```{r}
+Arima.Gas.Forecast <- forecast(Gas.Arima,h=20)
+Arima.Gas.Forecast
+autoplot(Arima.Gas.Forecast)
+accuracy(Arima.Gas.Forecast,Gas.Test.Data)
+```
+
+## Auto ARIMA Model
+
+```{r}
+Gas.Auto.Arima = auto.arima(Gas.Train.Data, seasonal = TRUE)
+hist(Gas.Auto.Arima$residuals)
+Gas.Auto.Arima
+```
+
+## Forecast Auto ARIMA Model
+
+```{r}
+Gas.Forecast.AArima <- forecast(Gas.Auto.Arima, h = 20)
+autoplot(Gas.Forecast.AArima)
+accuracy(Gas.Forecast.AArima,Gas.Test.Data)
+```
+
